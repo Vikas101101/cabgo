@@ -1,8 +1,16 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Runs on every request and gives Clerk the user's login info.
-// It doesn't block any page yet. Later we'll use it to protect pages.
-export default clerkMiddleware();
+// A list of address patterns that need a login.
+// "(.*)" means "and anything after it", so /dashboard/profile is covered too.
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  // If the visitor is opening a protected page, make sure they're logged in.
+  // If not, Clerk sends them to the sign-in page automatically.
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+});
 
 export const config = {
   matcher: [
