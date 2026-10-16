@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 // The menu items. To add a page later, just add a line here.
 const links = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/book", label: "Book a ride" },
   { href: "/dashboard/profile", label: "Profile" },
 ];
 
