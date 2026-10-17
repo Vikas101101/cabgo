@@ -1,5 +1,6 @@
 "use client";
 
+import ActiveRideCard from "@/components/ActiveRideCard";
 import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
@@ -61,7 +62,7 @@ export default function DashboardPage() {
           Signed in as a <span className="font-semibold">{user.role}</span>
         </p>
       </div>
-
+        <ActiveRideCard />
       {/* Stat cards: 1 column on phones, 3 on larger screens */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((s) => (

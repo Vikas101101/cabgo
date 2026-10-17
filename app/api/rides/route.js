@@ -17,8 +17,9 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (user.role === "driver") {
-      // Drivers see open requests, plus rides assigned to them
-      query = query.or(`status.eq.requested,driver_id.eq.${user.id}`);
+      // Drivers see only rides assigned to them.
+      // Open requests come from /api/rides/available (nearby only).
+      query = query.eq("driver_id", user.id);
     } else {
       // Riders only see their own rides
       query = query.eq("rider_id", user.id);
