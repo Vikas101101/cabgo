@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import RideStatus from "@/components/RideStatus";
 
-const REFRESH_MS = 5000; // check the server every 5 seconds
+const REFRESH_MS = 30000; // safety-net refresh every 30 seconds (pings make it instant)
 
 export default function DriverRides({ isOnline }) {
   const [available, setAvailable] = useState([]); // nearby requests
@@ -42,6 +42,12 @@ export default function DriverRides({ isOnline }) {
     load();
     const timer = setInterval(load, REFRESH_MS);
     return () => clearInterval(timer);
+  }, [load]);
+
+    // Refresh instantly when a live ping arrives
+  useEffect(() => {
+    window.addEventListener("ride-event", load);
+    return () => window.removeEventListener("ride-event", load);
   }, [load]);
 
   // One helper for accept, start and complete

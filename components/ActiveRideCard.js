@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import RideStatus from "@/components/RideStatus";
 
-const REFRESH_MS = 5000;
+const REFRESH_MS = 30000;
 
 export default function ActiveRideCard() {
   const [data, setData] = useState(null); // { role, ride, driver, rider }
@@ -26,6 +26,12 @@ export default function ActiveRideCard() {
     load();
     const timer = setInterval(load, REFRESH_MS);
     return () => clearInterval(timer);
+  }, [load]);
+
+    // Refresh instantly when a live ping arrives
+  useEffect(() => {
+    window.addEventListener("ride-event", load);
+    return () => window.removeEventListener("ride-event", load);
   }, [load]);
 
   async function cancelRide() {
