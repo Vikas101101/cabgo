@@ -1,43 +1,51 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import ActiveRideCard from "@/components/ActiveRideCard";
-import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  // State = data the page remembers. When it changes, the screen updates.
   const [user, setUser] = useState(null);
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // useEffect runs code once when the page first appears.
-  useEffect(() => {
-    async function loadData() {
-      try {
-        // Ask both API routes at the same time
-        const [userRes, ridesRes] = await Promise.all([
-          fetch("/api/users/me"),
-          fetch("/api/rides"),
-        ]);
-        const userData = await userRes.json();
-        const ridesData = await ridesRes.json();
+  // Fetch your profile and rides from the server
+  const load = useCallback(async () => {
+    try {
+      // Ask both API routes at the same time
+      const [userRes, ridesRes] = await Promise.all([
+        fetch("/api/users/me"),
+        fetch("/api/rides"),
+      ]);
+      const userData = await userRes.json();
+      const ridesData = await ridesRes.json();
 
-        if (!userRes.ok) throw new Error(userData.error);
-        if (!ridesRes.ok) throw new Error(ridesData.error);
+      if (!userRes.ok) throw new Error(userData.error);
+      if (!ridesRes.ok) throw new Error(ridesData.error);
 
-        setUser(userData.user);
-        setRides(ridesData.rides);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false); // stop showing "Loading..." either way
-      }
+      setUser(userData.user);
+      setRides(ridesData.rides);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false); // stop showing "Loading..." either way
     }
-    loadData();
   }, []);
 
+  // Load when the page opens
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Reload instantly when a live ping arrives
+  useEffect(() => {
+    window.addEventListener("ride-event", load);
+    return () => window.removeEventListener("ride-event", load);
+  }, [load]);
+
   if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-600">Error: {error}</p>;
+  if (error && !user) return <p className="text-red-600">Error: {error}</p>;
 
   // Simple numbers for the stat cards
   const total = rides.length;
@@ -62,7 +70,9 @@ export default function DashboardPage() {
           Signed in as a <span className="font-semibold">{user.role}</span>
         </p>
       </div>
-        <ActiveRideCard />
+
+      <ActiveRideCard />
+
       {/* Stat cards: 1 column on phones, 3 on larger screens */}
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((s) => (
@@ -81,11 +91,11 @@ export default function DashboardPage() {
         ) : (
           <ul className="divide-y">
             {rides.slice(0, 5).map((ride) => (
-              <li key={ride.id} className="flex justify-between py-2 text-sm">
+              <li key={ride.id} className="flex justify-between gap-4 py-2 text-sm">
                 <span>
                   {ride.pickup_address} → {ride.dropoff_address}
                 </span>
-                <span className="font-medium capitalize">{ride.status}</span>
+                <span className="font-medium capitalize">{ride.status.replace("_", " ")}</span>
               </li>
             ))}
           </ul>

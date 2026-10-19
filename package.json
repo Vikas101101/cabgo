@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.14",
@@ -21,6 +23,7 @@
     "@tailwindcss/turbopack": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
-    "tailwindcss": "^4"
+    "tailwindcss": "^4",
+    "vitest": "^5.0.5"
   }
 }

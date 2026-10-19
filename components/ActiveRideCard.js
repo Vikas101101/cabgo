@@ -51,7 +51,8 @@ export default function ActiveRideCard() {
       setError(err.message);
     } finally {
       setCancelling(false);
-      load();
+      // Announce the change, so this card AND the dashboard stats refresh
+      window.dispatchEvent(new CustomEvent("ride-event"));
     }
   }
 
