@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { getRealtimeClient } from "@/lib/supabaseBrowser";
 
 // What to show for each kind of ping
+
 const MESSAGES = {
   "new-request": "New ride request near you",
   accepted: "A driver accepted your ride",
   started: "Your ride has started",
   completed: "Ride completed. Thanks for riding!",
   cancelled: "The ride was cancelled",
+  paid: "Payment received for your ride",
   test: "Realtime is working!",
 };
 

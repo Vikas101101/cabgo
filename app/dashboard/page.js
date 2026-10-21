@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import ActiveRideCard from "@/components/ActiveRideCard";
+import PaymentCard from "@/components/PaymentCard";
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -72,6 +73,7 @@ export default function DashboardPage() {
       </div>
 
       <ActiveRideCard />
+            {user.role === "rider" && <PaymentCard />}
 
       {/* Stat cards: 1 column on phones, 3 on larger screens */}
       <div className="grid gap-4 sm:grid-cols-3">
