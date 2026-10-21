@@ -8,12 +8,16 @@ import { getCurrentUser } from "@/lib/getCurrentUser";
 import { createRazorpayOrder } from "@/lib/payments";
 import { notifyUser } from "@/lib/realtime";
 import { fake, jsonRequest, RIDER, DRIVER } from "./helpers/fake.js";
+import { emailReceiptAfterPayment } from "@/lib/receiptEmail";
 
 // Keep the real money helpers, but never call the real Razorpay
 vi.mock("@/lib/payments", async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, createRazorpayOrder: vi.fn() };
 });
+
+// Never send real emails from these tests
+vi.mock("@/lib/receiptEmail", () => ({ emailReceiptAfterPayment: vi.fn() }));
 
 process.env.RAZORPAY_KEY_SECRET = "test_secret";
 process.env.RAZORPAY_WEBHOOK_SECRET = "webhook_secret";
@@ -100,7 +104,7 @@ describe("POST /api/payments/create-order", () => {
 });
 
 describe("POST /api/payments/verify", () => {
-  const PENDING = { id: "pay-row-1", status: "pending", rides: { rider_id: RIDER.id, driver_id: DRIVER.id } };
+  const PENDING = { id: "pay-row-1", status: "pending", ride_id: RIDE_ID, rides: { rider_id: RIDER.id, driver_id: DRIVER.id } };
   const good = {
     razorpay_order_id: ORDER,
     razorpay_payment_id: PAY,
@@ -157,6 +161,7 @@ describe("POST /api/payments/verify", () => {
     expect(await res.json()).toEqual({ status: "succeeded" });
     expect(updatedPayment()).toMatchObject({ status: "succeeded", provider_payment_id: PAY });
     expect(notifyUser).toHaveBeenCalledWith(DRIVER.id, "paid");
+        expect(emailReceiptAfterPayment).toHaveBeenCalledWith({ rideId: RIDE_ID, riderId: RIDER.id });
   });
 
   it("does nothing extra when the payment is already confirmed", async () => {
@@ -181,7 +186,7 @@ describe("POST /api/payments/verify", () => {
 });
 
 describe("POST /api/payments/webhook", () => {
-  const ROW = { id: "pay-row-1", status: "pending", amount: 269, currency: "inr", rides: { driver_id: DRIVER.id } };
+    const ROW = { id: "pay-row-1", status: "pending", amount: 269, currency: "inr", ride_id: RIDE_ID, rides: { driver_id: DRIVER.id, rider_id: RIDER.id } };
 
   const eventBody = (overrides = {}, eventName = "payment.captured") =>
     JSON.stringify({
@@ -223,6 +228,7 @@ describe("POST /api/payments/webhook", () => {
     expect(res.status).toBe(200);
     expect(updatedPayment()).toMatchObject({ status: "succeeded", provider_payment_id: PAY });
     expect(notifyUser).toHaveBeenCalledWith(DRIVER.id, "paid");
+        expect(emailReceiptAfterPayment).toHaveBeenCalledWith({ rideId: RIDE_ID, riderId: RIDER.id });
   });
 
   it("ignores a payment whose amount doesn't match", async () => {
@@ -252,6 +258,7 @@ describe("POST /api/payments/webhook", () => {
     expect(res.status).toBe(200);
     expect(wasUpdated()).toBe(false);
     expect(notifyUser).not.toHaveBeenCalled();
+    expect(emailReceiptAfterPayment).not.toHaveBeenCalled();
   });
 
   it("acknowledges other event types without touching the database", async () => {

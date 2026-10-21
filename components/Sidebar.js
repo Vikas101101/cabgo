@@ -21,6 +21,7 @@ export default function Sidebar() {
     // Only riders (and users whose role isn't known yet) get "Book a ride"
     ...(role !== "driver" ? [{ href: "/dashboard/book", label: "Book a ride" }] : []),
     { href: "/dashboard/driver", label: role === "driver" ? "Driver" : "Drive with us" },
+    { href: "/dashboard/history", label: "History" },
     // Only drivers have earnings
     ...(role === "driver" ? [{ href: "/dashboard/earnings", label: "Earnings" }] : []),
     { href: "/dashboard/profile", label: "Profile" },

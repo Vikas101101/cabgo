@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Printing: show only the page content. Hide the top bar, the sidebar and pop-ups. */
+@media print {
+  header,
+  nav,
+  [aria-live] {
+    display: none !important;
+  }
+}

@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/getCurrentUser";
 import { supabase } from "@/lib/supabase";
 import { verifyPaymentSignature } from "@/lib/payments";
 import { notifyUser } from "@/lib/realtime";
+import { emailReceiptAfterPayment } from "@/lib/receiptEmail";
 
 // Razorpay ids look like "order_Abc123" and "pay_Xyz789"
 const ID = /^[A-Za-z0-9_]{5,60}$/;
@@ -30,7 +31,7 @@ export async function POST(request) {
     // Find the payment we created for this order, and make sure it's this rider's
     const { data: payment, error: findError } = await supabase
       .from("payments")
-      .select("id, status, rides!inner(rider_id, driver_id)")
+        .select("id, status, ride_id, rides!inner(rider_id, driver_id)")
       .eq("provider_order_id", orderId)
       .maybeSingle();
     if (findError) throw findError;
@@ -75,9 +76,16 @@ export async function POST(request) {
       throw updateError;
     }
 
-    // Tell the driver that the money arrived (best effort)
-    if (updated.length > 0 && payment.rides.driver_id) {
-      await notifyUser(payment.rides.driver_id, "paid");
+        if (updated.length > 0) {
+      // Tell the driver that the money arrived (best effort)
+      if (payment.rides.driver_id) {
+        await notifyUser(payment.rides.driver_id, "paid");
+      }
+      // Email the rider their receipt (best effort, never blocks the payment)
+      await emailReceiptAfterPayment({
+        rideId: payment.ride_id,
+        riderId: payment.rides.rider_id,
+      });
     }
 
     return Response.json({ status: "succeeded" });

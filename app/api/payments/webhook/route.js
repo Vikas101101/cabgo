@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { toPaise, verifyWebhookSignature } from "@/lib/payments";
 import { notifyUser } from "@/lib/realtime";
+import { emailReceiptAfterPayment } from "@/lib/receiptEmail";
 
 // POST /api/payments/webhook → Razorpay tells us a payment was captured.
 // There is no login here: the SIGNATURE is the proof that Razorpay sent it.
@@ -42,7 +43,7 @@ export async function POST(request) {
     // Find the payment we created for this order
     const { data: payment, error: findError } = await supabase
       .from("payments")
-      .select("id, status, amount, currency, rides!inner(driver_id)")
+      .select("id, status, amount, currency, ride_id, rides!inner(driver_id, rider_id)")
       .eq("provider_order_id", orderId)
       .maybeSingle();
     if (findError) throw findError;
@@ -86,8 +87,15 @@ export async function POST(request) {
       throw updateError;
     }
 
-    if (updated.length > 0 && payment.rides.driver_id) {
-      await notifyUser(payment.rides.driver_id, "paid");
+    if (updated.length > 0) {
+      if (payment.rides.driver_id) {
+        await notifyUser(payment.rides.driver_id, "paid");
+      }
+      // Email the rider their receipt (best effort, never blocks the webhook)
+      await emailReceiptAfterPayment({
+        rideId: payment.ride_id,
+        riderId: payment.rides.rider_id,
+      });
     }
 
     return Response.json({ received: true });
