@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { supabase } from "@/lib/supabase";
+import { ratingSummary } from "@/lib/ratings";
 
 // Show only a first name, for privacy
 const firstName = (name) => (name ? name.split(" ")[0] : null);
@@ -41,11 +42,15 @@ export async function GET() {
       const { data: u } = await supabase
         .from("users").select("name").eq("id", driver_id).maybeSingle();
       const { data: d } = await supabase
-        .from("drivers").select("vehicle_model, vehicle_number").eq("user_id", driver_id).maybeSingle();
+        .from("drivers")
+        .select("vehicle_model, vehicle_number, rating_sum, rating_count")
+        .eq("user_id", driver_id)
+        .maybeSingle();
       driver = {
         name: firstName(u?.name),
         vehicle_model: d?.vehicle_model ?? null,
         vehicle_number: d?.vehicle_number ?? null,
+        rating: ratingSummary(d?.rating_sum, d?.rating_count),
       };
     }
 

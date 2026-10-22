@@ -13,6 +13,7 @@ const MESSAGES = {
   cancelled: "The ride was cancelled",
   paid: "Payment received for your ride",
   test: "Realtime is working!",
+  reviewed: "You received a new rating",
 };
 
 export default function Notifications() {

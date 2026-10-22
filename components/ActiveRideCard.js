@@ -46,7 +46,7 @@ export default function ActiveRideCard() {
         body: JSON.stringify({ action: "cancel" }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      if (!res.ok) throw new Error(json.error); 
     } catch (err) {
       setError(err.message);
     } finally {
@@ -78,6 +78,20 @@ export default function ActiveRideCard() {
           {driver?.vehicle_model ?? "vehicle"} ({driver?.vehicle_number ?? "-"}).
         </p>
       )}
+
+      {isRider && driver && ride.status !== "requested" && (
+        <p className="text-sm text-gray-600">
+          {driver.rating?.count > 0 ? (
+            <>
+              <span className="text-yellow-500">★</span> {driver.rating.average.toFixed(1)} (
+              {driver.rating.count} rating{driver.rating.count === 1 ? "" : "s"})
+            </>
+          ) : (
+            "New driver, no ratings yet"
+          )}
+        </p>
+      )}
+
       {ride.status === "in_progress" && (
         <p className="text-sm text-gray-600">You're on your way. Enjoy the ride!</p>
       )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
+import DriverRatingCard from "@/components/DriverRatingCard";
 
 export default function ProfilePage() {
   // Clerk's copy of the user. We use it for the profile picture.
@@ -11,6 +12,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState(null);
 
   // Page status
   const [loading, setLoading] = useState(true);
@@ -29,6 +31,7 @@ export default function ProfilePage() {
         setName(data.user.name ?? "");
         setPhone(data.user.phone ?? "");
         setEmail(data.user.email ?? "");
+        setRole(data.user.role);
       } catch (err) {
         setMessage({ type: "error", text: err.message });
       } finally {
@@ -180,6 +183,7 @@ export default function ProfilePage() {
           {saving ? "Saving..." : "Save changes"}
         </button>
       </form>
+        {role === "driver" && <DriverRatingCard />}
     </div>
   );
 }
