@@ -33,3 +33,48 @@ body {
     display: none !important;
   }
 }
+
+/* Keyboard users: a clear outline on whatever has focus */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* On phones, text fields smaller than 16px make iPhone Safari zoom in when tapped */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* People who ask their device for less motion get (almost) none */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch screens: every button is at least 44px tall, so it's easy to tap */
+@media (pointer: coarse) {
+  button {
+    min-height: 44px;
+  }
+}
+
+/* Taps respond straight away, without double-tap zoom delays */
+button,
+a {
+  touch-action: manipulation;
+}
+
+/* Long words and addresses wrap instead of stretching the page sideways */
+main {
+  overflow-wrap: anywhere;
+}

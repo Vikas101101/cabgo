@@ -3,12 +3,13 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata = {
-  title: "Cab Booking App",
+  title: { default: "Cab Booking App", template: "%s | CabGo" },
   description: "Book rides easily",
 };
 
 export default function RootLayout({ children }) {
   return (
+    // ClerkProvider gives every page access to the logged-in user
     <ClerkProvider>
       <html lang="en">
         <body>

@@ -21,7 +21,7 @@ export default function Home() {
           </Link>
         </>
       ) : (
-        <p className="text-lg text-gray-400">Please sign up or log in.</p>
+        <p className="text-lg text-gray-500">Please sign up or log in.</p>
       )}
     </main>
   );

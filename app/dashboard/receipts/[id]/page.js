@@ -1,5 +1,6 @@
 "use client";
 
+import { PageSkeleton } from "@/components/Skeleton";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -74,7 +75,7 @@ export default function ReceiptPage() {
       </div>
     );
   }
-  if (!receipt) return <p>Loading...</p>;
+  if (!receipt) return <PageSkeleton />;
 
   return (
     <div className="max-w-2xl space-y-4">

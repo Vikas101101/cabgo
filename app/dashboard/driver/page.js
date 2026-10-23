@@ -1,5 +1,6 @@
 "use client";
 
+import { PageSkeleton } from "@/components/Skeleton";
 import DriverRides from "@/components/DriverRides";
 import { useEffect, useState } from "react";
 import LocationSearch from "@/components/LocationSearch";
@@ -118,7 +119,7 @@ export default function DriverPage() {
     );
   }
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <PageSkeleton />;
 
   const messageBox = message && (
     <p
@@ -145,9 +146,10 @@ export default function DriverPage() {
 
         <form onSubmit={handleRegister} className="space-y-4 rounded-lg bg-white p-4 shadow">
           <div>
-            <label className="mb-1 block text-sm font-medium">Vehicle model</label>
+            <label htmlFor="vehicle-model" className="mb-1 block text-sm font-medium">Vehicle model</label>
             <input
               type="text"
+              id="vehicle-model"
               value={vehicleModel}
               onChange={(e) => setVehicleModel(e.target.value)}
               placeholder="e.g. Maruti Swift"
@@ -157,9 +159,10 @@ export default function DriverPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Vehicle number</label>
+            <label htmlFor="vehicle-number" className="mb-1 block text-sm font-medium">Vehicle number</label>
             <input
               type="text"
+              id="vehicle-number"
               value={vehicleNumber}
               onChange={(e) => setVehicleNumber(e.target.value)}
               placeholder="e.g. MH12 AB 1234"
@@ -194,7 +197,7 @@ export default function DriverPage() {
       {messageBox}
 
       {/* Online / offline */}
-      <div className="flex items-center justify-between rounded-lg bg-white p-4 shadow">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-4 shadow">
         <div>
           <p className="text-sm text-gray-500">Your status</p>
           <p className={`text-xl font-bold ${driver.is_online ? "text-green-600" : "text-gray-500"}`}>

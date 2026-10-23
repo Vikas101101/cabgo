@@ -65,6 +65,7 @@ function RateForm({ ride, remaining, onDone, onSkip, onReload }) {
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
+          aria-label="Comment (optional)"
           maxLength={MAX_COMMENT}
           rows={3}
           disabled={submitting}
@@ -76,7 +77,7 @@ function RateForm({ ride, remaining, onDone, onSkip, onReload }) {
         </p>
       </div>
 
-      {error && <p className="rounded bg-red-100 p-3 text-sm text-red-800">{error}</p>}
+        {error && <p role="alert" className="rounded bg-red-100 p-3 text-sm text-red-800">{error}</p>}
 
       <div className="flex flex-wrap items-center gap-3">
         <button

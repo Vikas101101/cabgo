@@ -1,5 +1,7 @@
 "use client";
 
+import ErrorBox from "@/components/ErrorBox";
+import { CardSkeleton } from "@/components/Skeleton";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -91,15 +93,28 @@ export default function HistoryPage() {
         ))}
       </div>
 
-      {error && <p className="rounded bg-red-100 p-3 text-sm text-red-800">{error}</p>}
-      {!data && loading && <p>Loading...</p>}
+      {error && <ErrorBox message={error} onRetry={() => setReloadKey((k) => k + 1)} />}
+      {!data && loading && (
+        <div className="space-y-3">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      )}
 
       {data && (
         <div className={`space-y-3 ${loading ? "opacity-60" : ""}`}>
           {data.rides.length === 0 && (
-            <p className="rounded-lg bg-white p-6 text-center text-gray-500 shadow">
-              No rides to show here yet.
-            </p>
+            <div className="rounded-lg bg-white p-6 text-center text-gray-500 shadow">
+              <p>No rides to show here yet.</p>
+              {!isDriver && filter === "all" && (
+                <Link
+                  href="/dashboard/book"
+                  className="mt-3 inline-flex min-h-11 items-center rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                >
+                  Book your first ride
+                </Link>
+              )}
+            </div>
           )}
 
           {data.rides.map((ride) => (

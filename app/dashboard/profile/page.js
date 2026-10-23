@@ -1,5 +1,6 @@
 "use client";
 
+import { PageSkeleton } from "@/components/Skeleton";
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import DriverRatingCard from "@/components/DriverRatingCard";
@@ -96,7 +97,7 @@ export default function ProfilePage() {
     }
   }
 
-  if (loading || !isLoaded) return <p>Loading...</p>;
+  if (loading || !isLoaded) return <PageSkeleton />;
 
   return (
     <div className="max-w-xl space-y-6">
@@ -105,6 +106,7 @@ export default function ProfilePage() {
       {/* Success or error message */}
       {message && (
         <p
+          role={message.type === "error" ? "alert" : "status"}
           className={`rounded p-3 text-sm ${
             message.type === "success"
               ? "bg-green-100 text-green-800"
@@ -123,14 +125,14 @@ export default function ProfilePage() {
           className="h-20 w-20 rounded-full object-cover"
         />
         <div>
-          <label className="cursor-pointer rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
+          <label className="inline-flex min-h-11 cursor-pointer items-center rounded bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-blue-600">
             {uploading ? "Uploading..." : "Change picture"}
             <input
               type="file"
               accept="image/*"
               onChange={handlePictureChange}
               disabled={uploading}
-              className="hidden"
+              className="sr-only"
             />
           </label>
           <p className="mt-2 text-xs text-gray-500">JPG or PNG, up to 5 MB</p>
@@ -140,9 +142,9 @@ export default function ProfilePage() {
       {/* Details form */}
       <form onSubmit={handleSave} className="space-y-4 rounded-lg bg-white p-4 shadow">
         <div>
-          <label className="mb-1 block text-sm font-medium">Full name</label>
+          <label htmlFor="profile-name" className="mb-1 block text-sm font-medium">Full name</label>
           <input
-            type="text"
+            type="text"id="profile-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -152,9 +154,9 @@ export default function ProfilePage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">Phone number</label>
+          <label htmlFor="profile-phone" className="mb-1 block text-sm font-medium">Phone number</label>
           <input
-            type="tel"
+            type="tel"id="profile-phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+91 98765 43210"
@@ -163,9 +165,9 @@ export default function ProfilePage() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium">Email</label>
+          <label htmlFor="profile-email" className="mb-1 block text-sm font-medium">Email</label>
           <input
-            type="email"
+            type="email"id="profile-email"
             value={email}
             disabled
             className="w-full rounded border border-gray-200 bg-gray-100 px-3 py-2 text-gray-500"

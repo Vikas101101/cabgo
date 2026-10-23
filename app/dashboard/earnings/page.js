@@ -1,5 +1,7 @@
 "use client";
 
+import ErrorBox from "@/components/ErrorBox";
+import { PageSkeleton } from "@/components/Skeleton";
 import { useCallback, useEffect, useState } from "react";
 
 const money = (n) => `₹${Number(n).toFixed(2)}`;
@@ -30,8 +32,8 @@ export default function EarningsPage() {
     return () => window.removeEventListener("ride-event", load);
   }, [load]);
 
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (!data) return <p>Loading...</p>;
+  if (error && !data) return <ErrorBox message={error} onRetry={load} />;
+  if (!data) return <PageSkeleton />;
 
   const { summary, payments } = data;
   const cards = [

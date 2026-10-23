@@ -33,7 +33,7 @@ export default function MapView({ pickup, dropoff, path }) {
   const fitPoints = path && path.length > 1 ? path : markerPoints;
 
   return (
-    <div className="isolate h-[400px] w-full overflow-hidden rounded-lg shadow">
+    <div className="isolate h-[300px] w-full overflow-hidden rounded-lg shadow sm:h-[400px]">
       <MapContainer center={PUNE} zoom={12} scrollWheelZoom className="h-full w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

@@ -1,5 +1,7 @@
 "use client";
 
+import ErrorBox from "@/components/ErrorBox";
+import { CardSkeleton } from "@/components/Skeleton";
 import { useCallback, useEffect, useState } from "react";
 import { Stars } from "@/components/StarRating";
 
@@ -31,8 +33,8 @@ export default function DriverRatingCard() {
     return () => window.removeEventListener("ride-event", load);
   }, [load]);
 
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
-  if (!data) return <p className="text-sm text-gray-500">Loading ratings...</p>;
+  if (error && !data) return <ErrorBox message={error} onRetry={load} />;
+  if (!data) return <CardSkeleton lines={2} />;
 
   const { summary, reviews } = data;
 
@@ -71,7 +73,7 @@ export default function DriverRatingCard() {
                 {r.comment ? (
                   <p className="mt-1 whitespace-pre-wrap break-words text-sm">{r.comment}</p>
                 ) : (
-                  <p className="mt-1 text-sm italic text-gray-400">No comment</p>
+                  <p className="mt-1 text-sm italic text-gray-500">No comment</p>
                 )}
               </li>
             ))}

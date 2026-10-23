@@ -5,6 +5,9 @@ import ActiveRideCard from "@/components/ActiveRideCard";
 import PaymentCard from "@/components/PaymentCard";
 import RatePrompt from "@/components/RatePrompt";
 import DriverRatingCard from "@/components/DriverRatingCard";
+import ErrorBox from "@/components/ErrorBox";
+import { PageSkeleton } from "@/components/Skeleton";
+
 
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
@@ -47,8 +50,8 @@ export default function DashboardPage() {
     return () => window.removeEventListener("ride-event", load);
   }, [load]);
 
-  if (loading) return <p>Loading...</p>;
-  if (error && !user) return <p className="text-red-600">Error: {error}</p>;
+  if (loading) return <PageSkeleton />;
+  if (error && !user) return <ErrorBox message={error} onRetry={load} />;
 
   // Simple numbers for the stat cards
   const total = rides.length;

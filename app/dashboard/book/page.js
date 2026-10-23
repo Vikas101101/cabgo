@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import LocationSearch from "@/components/LocationSearch";
+import { Skeleton } from "@/components/Skeleton";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
-  loading: () => <p>Loading map...</p>,
+  loading: () => <Skeleton className="h-[300px] w-full sm:h-[400px]" />,
 });
 
 export default function BookRidePage() {
@@ -90,6 +91,13 @@ export default function BookRidePage() {
     }
     // On success we leave the page, so we don't need to re-enable the button
   }
+    // On a phone the fares appear below the map. Scroll them into view when they arrive.
+  const summaryRef = useRef(null);
+  useEffect(() => {
+    if (estimate && summaryRef.current) {
+      summaryRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [estimate]);
 
   const selected = estimate?.options.find((o) => o.type === rideType);
 
@@ -113,7 +121,7 @@ export default function BookRidePage() {
       <MapView pickup={pickup} dropoff={dropoff} path={estimate?.path} />
 
       {pickup && dropoff && (
-        <div className="rounded-lg bg-white p-4 shadow">
+          <div ref={summaryRef} className="scroll-mb-24 rounded-lg bg-white p-4 shadow">
           {estimating && <p className="text-gray-600">Calculating route...</p>}
           {estimateError && <p className="text-red-600">{estimateError}</p>}
 
