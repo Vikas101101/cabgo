@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 
 // GET /api/payments → payments for the logged-in rider's rides
@@ -22,6 +23,6 @@ export async function GET() {
 
     return Response.json({ payments: data });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

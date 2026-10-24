@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 
 const PAGE_SIZE = 10;
@@ -88,6 +89,6 @@ export async function GET(request) {
       total_pages: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)),
     });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

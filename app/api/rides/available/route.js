@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { distanceKm, MATCH_RADIUS_KM } from "@/lib/geo";
 
@@ -50,6 +51,6 @@ export async function GET() {
 
     return Response.json({ rides });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

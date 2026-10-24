@@ -25,7 +25,7 @@ describe("distanceKm", () => {
   });
 });
 
-describe("the nearby-driver rule", () => {
+("the nearby-driver rule", () => {
   it("counts a point about 1 km away as nearby", () => {
     // 0.01 degrees of latitude is about 1.1 km
     const near = { lat: SHIVAJINAGAR.lat + 0.01, lng: SHIVAJINAGAR.lng };

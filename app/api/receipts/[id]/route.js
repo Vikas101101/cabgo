@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { loadReceipt } from "@/lib/receipt";
 
 // GET /api/receipts/<ride id> → the receipt for one paid ride
@@ -17,6 +18,6 @@ export async function GET(request, { params }) {
     }
     return Response.json({ receipt: result.receipt });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

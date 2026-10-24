@@ -7,10 +7,11 @@
 // the next answer that the test lined up with fake.queue(table, answer).
 //
 // It also records every step, so a test can check WHAT the code asked for.
+// Function calls like supabase.rpc("name") use the queue "rpc:name".
 
 export const fake = {
   queues: {}, // table name -> list of answers waiting to be used
-  calls: [], // every from(...) the code made, with its steps
+  calls: [], // every from(...) or rpc(...) the code made, with its steps
 
   reset() {
     fake.queues = {};
@@ -58,6 +59,21 @@ export const fake = {
       );
 
       return builder;
+    },
+
+    // supabase.rpc("name", args): the answer comes from fake.queue("rpc:name", answer)
+    rpc(name, args) {
+      const table = `rpc:${name}`;
+      fake.calls.push({ table, ops: [{ method: "rpc", args: [args] }] });
+      return {
+        then(resolve, reject) {
+          const next = fake.queues[table]?.shift();
+          if (!next) {
+            return reject(new Error(`Unexpected rpc "${name}" (no answer queued)`));
+          }
+          resolve(next);
+        },
+      };
     },
   },
 };

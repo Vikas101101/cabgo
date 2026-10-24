@@ -1,6 +1,8 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // GET /api/users/me → returns the logged-in user's profile
 export async function GET() {
@@ -13,7 +15,7 @@ export async function GET() {
 
     return Response.json({ user });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }
 
@@ -25,8 +27,11 @@ export async function PATCH(request) {
       return Response.json({ error: "Not logged in" }, { status: 401 });
     }
 
+    const limited = await checkRateLimit(`profile:${user.id}`, 10, 60);
+    if (limited) return limited;
+    
     // Read what the browser sent, and tidy it up
-    const body = await request.json();
+    const body = await readJson(request);
     const name = (body.name ?? "").trim();
     const phone = (body.phone ?? "").trim();
 
@@ -67,6 +72,6 @@ export async function PATCH(request) {
 
     return Response.json({ user: data });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

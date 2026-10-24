@@ -1,17 +1,23 @@
 import { auth } from "@clerk/nextjs/server";
 import { getRoute, isValidPoint } from "@/lib/route";
 import { RIDE_TYPES, calculateFare } from "@/lib/fare";
+import { fail, readJson } from "@/lib/http";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // POST /api/route-estimate → route, distance, time and a fare for each ride type
 export async function POST(request) {
   try {
-    // Only logged-in users, so strangers can't use our server to call OSRM
+    // Only logged-in users, so strangers can't use our server to call the routing service
     const { userId } = await auth();
     if (!userId) {
       return Response.json({ error: "Not logged in" }, { status: 401 });
     }
 
-    const { pickup, dropoff } = await request.json();
+    // The booking page asks once each time a place changes, so 30 a minute is plenty
+    const limited = await checkRateLimit(`estimate:${userId}`, 30, 60);
+    if (limited) return limited;
+
+    const { pickup, dropoff } = await readJson(request);
     if (!isValidPoint(pickup) || !isValidPoint(dropoff)) {
       return Response.json({ error: "Invalid pickup or drop-off location" }, { status: 400 });
     }
@@ -32,6 +38,6 @@ export async function POST(request) {
       options,
     });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: err.status || 500 });
+    return fail(err);
   }
 }

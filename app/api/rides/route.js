@@ -1,9 +1,11 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { getRoute, isValidPoint } from "@/lib/route";
 import { RIDE_TYPES, calculateFare } from "@/lib/fare";
 import { distanceKm, MATCH_RADIUS_KM } from "@/lib/geo";
 import { notifyUser } from "@/lib/realtime";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // GET /api/rides → list rides for the logged-in user
 export async function GET() {
@@ -32,7 +34,7 @@ export async function GET() {
 
     return Response.json({ rides: data });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }
 
@@ -47,7 +49,10 @@ export async function POST(request) {
       return Response.json({ error: "Only riders can book rides" }, { status: 403 });
     }
 
-    const { pickup, dropoff, ride_type } = await request.json();
+    const limited = await checkRateLimit(`book:${user.id}`, 10, 60);
+      if (limited) return limited;
+
+    const { pickup, dropoff, ride_type } = await readJson(request);
 
     // 1. Check what the browser sent
     if (!RIDE_TYPES[ride_type]) {
@@ -126,6 +131,6 @@ export async function POST(request) {
 
     return Response.json({ ride: data }, { status: 201 });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

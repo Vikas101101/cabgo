@@ -1,6 +1,8 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { isValidPoint } from "@/lib/route";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // GET /api/driver → the logged-in user's role, and driver details if they are a driver
 export async function GET() {
@@ -24,7 +26,7 @@ export async function GET() {
 
     return Response.json({ role: user.role, driver: data });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }
 
@@ -40,7 +42,7 @@ export async function POST(request) {
     }
 
     // Read and tidy up the vehicle details
-    const body = await request.json();
+    const body = await readJson(request);
     const vehicleModel = String(body.vehicle_model ?? "").trim();
     const vehicleNumber = String(body.vehicle_number ?? "").trim().toUpperCase();
 
@@ -89,7 +91,7 @@ export async function POST(request) {
 
     return Response.json({ ok: true }, { status: 201 });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }
 
@@ -104,7 +106,10 @@ export async function PATCH(request) {
       return Response.json({ error: "Only drivers can do this" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const limited = await checkRateLimit(`driver:${user.id}`, 30, 60);
+      if (limited) return limited;
+
+    const body = await readJson(request);
 
     if (typeof body.is_online !== "boolean") {
       return Response.json({ error: "is_online must be true or false" }, { status: 400 });
@@ -141,6 +146,6 @@ export async function PATCH(request) {
 
     return Response.json({ driver: data });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

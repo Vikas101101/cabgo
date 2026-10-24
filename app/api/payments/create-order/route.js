@@ -1,6 +1,8 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { createRazorpayOrder, splitFare } from "@/lib/payments";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,7 +18,10 @@ export async function POST(request) {
       return Response.json({ error: "Only riders can pay for rides" }, { status: 403 });
     }
 
-    const { ride_id } = await request.json();
+    const limited = await checkRateLimit(`pay:${user.id}`, 10, 600);
+      if (limited) return limited;
+
+    const { ride_id } = await readJson(request);
     if (!UUID.test(String(ride_id))) {
       return Response.json({ error: "Invalid ride id" }, { status: 400 });
     }
@@ -81,6 +86,6 @@ export async function POST(request) {
       key_id: process.env.RAZORPAY_KEY_ID, // the Key Id is public. The secret never leaves the server
     });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: err.status || 500 });
+    return fail(err);
   }
 }

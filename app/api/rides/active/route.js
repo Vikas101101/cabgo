@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { ratingSummary } from "@/lib/ratings";
 
@@ -63,6 +64,6 @@ export async function GET() {
 
     return Response.json({ role: user.role, ride, driver, rider });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

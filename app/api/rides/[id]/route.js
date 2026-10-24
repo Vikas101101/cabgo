@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { distanceKm, MATCH_RADIUS_KM } from "@/lib/geo";
 import { notifyUser } from "@/lib/realtime";
@@ -20,7 +21,7 @@ export async function PATCH(request, { params }) {
       return Response.json({ error: "Not logged in" }, { status: 401 });
     }
 
-    const { action } = await request.json();
+    const { action } = await readJson(request);
 
     if (action === "accept") return await acceptRide(user, id);
     if (action === "start") return await moveRide(user, id, "accepted", "in_progress", "started");
@@ -29,7 +30,7 @@ export async function PATCH(request, { params }) {
 
     return Response.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }
 

@@ -1,7 +1,9 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { validateReview } from "@/lib/ratings";
 import { notifyUser } from "@/lib/realtime";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -17,8 +19,11 @@ export async function POST(request) {
       return Response.json({ error: "Only riders can rate drivers" }, { status: 403 });
     }
 
+    const limited = await checkRateLimit(`review:${user.id}`, 10, 600);
+    if (limited) return limited;
+
     // A broken request body gives a clear 400, not a crash
-    const body = await request.json().catch(() => null);
+    const body = await readJson(request).catch(() => null);
     if (!body || typeof body !== "object") {
       return Response.json({ error: "Invalid request" }, { status: 400 });
     }
@@ -77,6 +82,6 @@ export async function POST(request) {
 
     return Response.json({ review: data }, { status: 201 });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

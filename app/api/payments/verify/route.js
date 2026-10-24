@@ -1,8 +1,10 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { verifyPaymentSignature } from "@/lib/payments";
 import { notifyUser } from "@/lib/realtime";
 import { emailReceiptAfterPayment } from "@/lib/receiptEmail";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Razorpay ids look like "order_Abc123" and "pay_Xyz789"
 const ID = /^[A-Za-z0-9_]{5,60}$/;
@@ -19,7 +21,10 @@ export async function POST(request) {
       return Response.json({ error: "Only riders can pay for rides" }, { status: 403 });
     }
 
-    const body = await request.json();
+    const limited = await checkRateLimit(`verify:${user.id}`, 20, 600);
+     if (limited) return limited;
+
+    const body = await readJson(request);
     const orderId = String(body.razorpay_order_id ?? "");
     const paymentId = String(body.razorpay_payment_id ?? "");
     const signature = String(body.razorpay_signature ?? "");
@@ -90,6 +95,6 @@ export async function POST(request) {
 
     return Response.json({ status: "succeeded" });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }

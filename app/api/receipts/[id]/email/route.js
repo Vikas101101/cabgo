@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
+import { fail, readJson } from "@/lib/http";
 import { sendReceiptEmail, maskEmail } from "@/lib/receiptEmail";
 
 // POST /api/receipts/<ride id>/email → email the receipt to the logged-in rider
@@ -20,6 +21,6 @@ export async function POST(request, { params }) {
     // We show it partly hidden.
     return Response.json({ sent: true, to: maskEmail(result.to) });
   } catch (err) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return fail(err);
   }
 }
