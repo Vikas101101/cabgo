@@ -18,33 +18,107 @@ const insertedRow = () =>
   fake.ops("rides").find((o) => o.method === "insert")?.args[0];
 
 describe("GET /api/rides", () => {
+  // The route asks for the list first, then the three counts (all, active, completed)
+  const queueResults = ({ list = [], total = 0, active = 0, completed = 0 } = {}) => {
+    fake.queue("rides", { data: list, error: null });
+    fake.queue("rides", { count: total, error: null });
+    fake.queue("rides", { count: active, error: null });
+    fake.queue("rides", { count: completed, error: null });
+  };
+
   it("returns 401 when nobody is logged in", async () => {
     getCurrentUser.mockResolvedValue(null);
     const res = await GET();
     expect(res.status).toBe(401);
   });
 
-  it("shows a rider only their own rides", async () => {
+  it("gives a rider the newest rides and the counts", async () => {
     getCurrentUser.mockResolvedValue(RIDER);
-    fake.queue("rides", { data: [{ id: "r1" }], error: null });
+    queueResults({ list: [{ id: "r1", status: "completed" }], total: 7, active: 2, completed: 4 });
 
     const res = await GET();
     const data = await res.json();
 
     expect(res.status).toBe(200);
     expect(data.rides).toHaveLength(1);
-    expect(fake.ops("rides")).toContainEqual({ method: "eq", args: ["rider_id", RIDER.id] });
+    expect(data.counts).toEqual({ total: 7, active: 2, completed: 4 });
   });
 
-  it("shows a driver only rides assigned to them, not every open request", async () => {
-    getCurrentUser.mockResolvedValue(DRIVER);
-    fake.queue("rides", { data: [], error: null });
-
+  it("only looks at this rider's own rides", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    queueResults();
     await GET();
+    const filters = fake.ops("rides").filter((o) => o.method === "eq");
+    expect(filters.length).toBeGreaterThanOrEqual(4); // the list and each count
+    expect(filters.every((o) => o.args[0] === "rider_id" && o.args[1] === RIDER.id)).toBe(true);
+  });
 
+  it("only looks at rides a driver drove, not every open request", async () => {
+    getCurrentUser.mockResolvedValue(DRIVER);
+    queueResults();
+    await GET();
     const ops = fake.ops("rides");
     expect(ops).toContainEqual({ method: "eq", args: ["driver_id", DRIVER.id] });
     expect(ops.some((o) => o.method === "or")).toBe(false);
+  });
+
+  it("asks for only five rides, and never for the ids of the people", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    queueResults();
+    await GET();
+    const ops = fake.ops("rides");
+    expect(ops).toContainEqual({ method: "limit", args: [5] });
+    const columns = ops.find((o) => o.method === "select" && String(o.args[0]).includes("pickup_address")).args[0];
+    expect(columns).not.toContain("rider_id");
+    expect(columns).not.toContain("driver_id");
+    expect(columns).not.toContain("*");
+  });
+
+  it("counts in the database, without downloading the rides", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    queueResults();
+    await GET();
+    const counts = fake.ops("rides").filter(
+      (o) => o.method === "select" && o.args[1]?.head === true && o.args[1]?.count === "exact"
+    );
+    expect(counts).toHaveLength(3);
+  });
+
+  it("counts active rides as requested, accepted and in progress", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    queueResults();
+    await GET();
+    const ops = fake.ops("rides");
+    expect(ops).toContainEqual({ method: "in", args: ["status", ["requested", "accepted", "in_progress"]] });
+    expect(ops).toContainEqual({ method: "in", args: ["status", ["completed"]] });
+  });
+
+  it("shows zeros for a person with no rides", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    fake.queue("rides", { data: null, error: null });
+    fake.queue("rides", { count: null, error: null });
+    fake.queue("rides", { count: null, error: null });
+    fake.queue("rides", { count: null, error: null });
+
+    const data = await (await GET()).json();
+
+    expect(data.rides).toEqual([]);
+    expect(data.counts).toEqual({ total: 0, active: 0, completed: 0 });
+  });
+
+  it("hides the details of a database error", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    getCurrentUser.mockResolvedValue(RIDER);
+    fake.queue("rides", { data: null, error: { code: "XX000", message: "table is on fire" } });
+    fake.queue("rides", { count: 0, error: null });
+    fake.queue("rides", { count: 0, error: null });
+    fake.queue("rides", { count: 0, error: null });
+
+    const res = await GET();
+
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(await res.json())).not.toContain("on fire");
+    log.mockRestore();
   });
 });
 

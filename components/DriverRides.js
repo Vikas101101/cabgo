@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import RideStatus from "@/components/RideStatus";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const REFRESH_MS = 30000; // safety-net refresh every 30 seconds (pings make it instant)
 
@@ -37,18 +38,7 @@ export default function DriverRides({ isOnline }) {
     }
   }, [isOnline]);
 
-  // Load now, then every 5 seconds. Stop when the page closes.
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [load]);
-
-    // Refresh instantly when a live ping arrives
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+  useAutoRefresh(load, REFRESH_MS);
 
   // One helper for accept, start and complete
   async function act(id, action, doneMessage = "") {

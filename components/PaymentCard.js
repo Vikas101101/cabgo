@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 
@@ -37,18 +38,7 @@ export default function PaymentCard() {
     }
   }, []);
 
-  // Load when the card first appears, and refresh slowly as a safety net
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 30000);
-    return () => clearInterval(timer);
-  }, [load]);
-
-  // Refresh instantly when a live ping arrives (for example "ride completed")
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+  useAutoRefresh(load, 30000);
 
   // The pop-up gave us proof of payment: ask our server to check it
   async function confirmPayment(response) {

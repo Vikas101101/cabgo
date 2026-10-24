@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import RideStatus from "@/components/RideStatus";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const REFRESH_MS = 30000;
 
@@ -21,18 +22,7 @@ export default function ActiveRideCard() {
     }
   }, []);
 
-  // Load now, then every 5 seconds
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => clearInterval(timer);
-  }, [load]);
-
-    // Refresh instantly when a live ping arrives
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+  useAutoRefresh(load, REFRESH_MS);
 
   async function cancelRide() {
     if (!window.confirm("Cancel this ride?")) return;

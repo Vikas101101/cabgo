@@ -12,6 +12,7 @@ import { PageSkeleton } from "@/components/Skeleton";
 export default function DashboardPage() {
   const [user, setUser] = useState(null);
   const [rides, setRides] = useState([]);
+  const [counts, setCounts] = useState({ total: 0, active: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -31,6 +32,7 @@ export default function DashboardPage() {
 
       setUser(userData.user);
       setRides(ridesData.rides);
+      setCounts(ridesData.counts);
       setError("");
     } catch (err) {
       setError(err.message);
@@ -53,12 +55,8 @@ export default function DashboardPage() {
   if (loading) return <PageSkeleton />;
   if (error && !user) return <ErrorBox message={error} onRetry={load} />;
 
-  // Simple numbers for the stat cards
-  const total = rides.length;
-  const completed = rides.filter((r) => r.status === "completed").length;
-  const active = rides.filter((r) =>
-    ["requested", "accepted", "in_progress"].includes(r.status)
-  ).length;
+  
+  const { total, active, completed } = counts;
 
   const stats = [
     { label: "Total rides", value: total },

@@ -1,13 +1,13 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { fail, readJson } from "@/lib/http";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { supabase } from "@/lib/supabase";
 import { getRoute, isValidPoint } from "@/lib/route";
 import { RIDE_TYPES, calculateFare } from "@/lib/fare";
 import { distanceKm, MATCH_RADIUS_KM } from "@/lib/geo";
 import { notifyUser } from "@/lib/realtime";
-import { checkRateLimit } from "@/lib/rateLimit";
 
-// GET /api/rides → list rides for the logged-in user
+// GET /api/rides → the five newest rides, plus counts for the dashboard
 export async function GET() {
   try {
     const user = await getCurrentUser();
@@ -15,24 +15,44 @@ export async function GET() {
       return Response.json({ error: "Not logged in" }, { status: 401 });
     }
 
-    let query = supabase
-      .from("rides")
-      .select("*")
-      .order("created_at", { ascending: false });
+    // Riders see rides they booked, drivers see rides they drove
+    const mine = user.role === "driver" ? "driver_id" : "rider_id";
 
-    if (user.role === "driver") {
-      // Drivers see only rides assigned to them.
-      // Open requests come from /api/rides/available (nearby only).
-      query = query.eq("driver_id", user.id);
-    } else {
-      // Riders only see their own rides
-      query = query.eq("rider_id", user.id);
+    // A count asks the database for a NUMBER, so no ride rows travel at all
+    const count = (statuses) => {
+      let query = supabase
+        .from("rides")
+        .select("id", { count: "exact", head: true })
+        .eq(mine, user.id);
+      if (statuses) query = query.in("status", statuses);
+      return query;
+    };
+
+    // The list and the three counts run at the same time
+    const [recent, total, active, completed] = await Promise.all([
+      supabase
+        .from("rides")
+        .select("id, status, pickup_address, dropoff_address, fare, created_at")
+        .eq(mine, user.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      count(null),
+      count(["requested", "accepted", "in_progress"]),
+      count(["completed"]),
+    ]);
+
+    for (const result of [recent, total, active, completed]) {
+      if (result.error) throw result.error;
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
-
-    return Response.json({ rides: data });
+    return Response.json({
+      rides: recent.data ?? [],
+      counts: {
+        total: total.count ?? 0,
+        active: active.count ?? 0,
+        completed: completed.count ?? 0,
+      },
+    });
   } catch (err) {
     return fail(err);
   }
@@ -50,7 +70,7 @@ export async function POST(request) {
     }
 
     const limited = await checkRateLimit(`book:${user.id}`, 10, 60);
-      if (limited) return limited;
+    if (limited) return limited;
 
     const { pickup, dropoff, ride_type } = await readJson(request);
 

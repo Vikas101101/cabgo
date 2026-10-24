@@ -1,5 +1,6 @@
 "use client";
 
+import { getMe } from "@/lib/me";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,12 +29,11 @@ export default function Sidebar() {
   const [role, setRole] = useState(null); // null means "we don't know yet"
 
   // Ask who the user is, to decide which links to show
-  useEffect(() => {
+   useEffect(() => {
     let cancelled = false;
-    fetch("/api/users/me")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled) setRole(data.user?.role ?? "rider");
+    getMe()
+      .then((me) => {
+        if (!cancelled) setRole(me?.role ?? "rider");
       })
       .catch(() => {
         if (!cancelled) setRole("rider");

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { StarInput } from "@/components/StarRating";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const MAX_COMMENT = 500;
 
@@ -120,18 +121,7 @@ export default function RatePrompt() {
     }
   }, []);
 
-  // Load when the card appears, and refresh slowly as a safety net
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 30000);
-    return () => clearInterval(timer);
-  }, [load]);
-
-  // Refresh instantly when a live ping arrives (for example "ride completed")
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+  useAutoRefresh(load, 30000);
 
   // Hide the thank-you message after a few seconds
   useEffect(() => {
