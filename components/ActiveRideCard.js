@@ -83,7 +83,7 @@ export default function ActiveRideCard() {
       )}
 
       {ride.status === "in_progress" && (
-        <p className="text-sm text-gray-600">You're on your way. Enjoy the ride!</p>
+        <p className="text-sm text-gray-600">You&apos;re on your way. Enjoy the ride!</p>
       )}
 
       <div className="space-y-1 text-sm">

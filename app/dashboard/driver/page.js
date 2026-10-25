@@ -140,7 +140,7 @@ export default function DriverPage() {
 
         <p className="rounded bg-yellow-100 p-3 text-sm text-yellow-900">
           Registering turns this account into a <strong>driver account</strong>. Driver
-          accounts can accept rides but can't book them. To test both sides, use a
+          accounts can accept rides but can&apos;t book them. To test both sides, use a
           separate account for each.
         </p>
 

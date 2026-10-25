@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import ActiveRideCard from "@/components/ActiveRideCard";
 import PaymentCard from "@/components/PaymentCard";
 import RatePrompt from "@/components/RatePrompt";
 import DriverRatingCard from "@/components/DriverRatingCard";
 import ErrorBox from "@/components/ErrorBox";
 import { PageSkeleton } from "@/components/Skeleton";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 
 export default function DashboardPage() {
@@ -41,16 +42,7 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Load when the page opens
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Reload instantly when a live ping arrives
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+    useAutoRefresh(load, 30000);
 
   if (loading) return <PageSkeleton />;
   if (error && !user) return <ErrorBox message={error} onRetry={load} />;

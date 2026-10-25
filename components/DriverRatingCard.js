@@ -2,8 +2,9 @@
 
 import ErrorBox from "@/components/ErrorBox";
 import { CardSkeleton } from "@/components/Skeleton";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Stars } from "@/components/StarRating";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const day = (iso) => new Date(iso).toLocaleDateString("en-IN", { dateStyle: "medium" });
 
@@ -23,15 +24,7 @@ export default function DriverRatingCard() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Refresh instantly when a live ping arrives (for example "new rating")
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+   useAutoRefresh(load, 30000);
 
   if (error && !data) return <ErrorBox message={error} onRetry={load} />;
   if (!data) return <CardSkeleton lines={2} />;

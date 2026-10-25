@@ -2,7 +2,8 @@
 
 import ErrorBox from "@/components/ErrorBox";
 import { PageSkeleton } from "@/components/Skeleton";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 
 const money = (n) => `₹${Number(n).toFixed(2)}`;
 
@@ -22,15 +23,7 @@ export default function EarningsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  // Refresh when a live ping arrives (for example "payment received")
-  useEffect(() => {
-    window.addEventListener("ride-event", load);
-    return () => window.removeEventListener("ride-event", load);
-  }, [load]);
+   useAutoRefresh(load, 30000);
 
   if (error && !data) return <ErrorBox message={error} onRetry={load} />;
   if (!data) return <PageSkeleton />;

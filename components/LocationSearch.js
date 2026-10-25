@@ -20,20 +20,21 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
   const listId = `${inputId}-list`;
 
   const [query, setQuery] = useState(""); // what is typed in the box
-  const [results, setResults] = useState([]); // the suggestions
-  const [open, setOpen] = useState(false); // is the list showing?
+  const [results, setResults] = useState([]); // the suggestions from the last search
+  const [open, setOpen] = useState(false); // is the list allowed to show?
   const [active, setActive] = useState(-1); // which suggestion is highlighted (-1 = none)
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
 
+  // We only search once there is enough text, and while the box is in use
+  const canSearch = open && query.trim().length >= 3;
+  // Suggestions are shown only while a search makes sense, so old ones never linger
+  const shown = canSearch ? results : [];
+  const showList = shown.length > 0;
+
   // Runs whenever the typed text changes
   useEffect(() => {
-    // Don't search for very short text, or after a suggestion was chosen
-    if (!open || query.trim().length < 3) {
-      setResults([]);
-      setActive(-1);
-      return;
-    }
+    if (!canSearch) return;
 
     const controller = new AbortController(); // lets us cancel an old request
 
@@ -65,7 +66,7 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [query, open]);
+  }, [canSearch, query]);
 
   // The rider is typing
   function handleChange(e) {
@@ -86,18 +87,17 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
   // Keyboard: arrows move through the list, Enter chooses, Escape closes
   function handleKeyDown(e) {
     if (e.key === "ArrowDown") {
-      if (results.length === 0) return;
+      if (shown.length === 0) return;
       e.preventDefault();
-      setOpen(true);
-      setActive((a) => (a + 1) % results.length);
+      setActive((a) => (a + 1) % shown.length);
     } else if (e.key === "ArrowUp") {
-      if (results.length === 0) return;
+      if (shown.length === 0) return;
       e.preventDefault();
-      setActive((a) => (a <= 0 ? results.length - 1 : a - 1));
+      setActive((a) => (a <= 0 ? shown.length - 1 : a - 1));
     } else if (e.key === "Enter") {
-      if (open && active >= 0 && results[active]) {
+      if (showList && active >= 0 && shown[active]) {
         e.preventDefault();
-        choose(results[active]);
+        choose(shown[active]);
       }
     } else if (e.key === "Escape") {
       if (open) {
@@ -106,8 +106,6 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
       }
     }
   }
-
-  const showList = open && results.length > 0;
 
   return (
     <div className="relative">
@@ -134,7 +132,9 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
 
       {/* A hidden message that screen readers announce when suggestions appear */}
       <p className="sr-only" aria-live="polite">
-        {showList ? `${results.length} suggestions available. Use the up and down arrow keys to choose.` : ""}
+        {showList
+          ? `${shown.length} suggestions available. Use the up and down arrow keys to choose.`
+          : ""}
       </p>
 
       {searching && <p className="mt-1 text-xs text-gray-500">Searching...</p>}
@@ -152,7 +152,7 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
           aria-label={`${label} suggestions`}
           className="absolute z-20 mt-1 w-full overflow-hidden rounded border border-gray-200 bg-white shadow-lg"
         >
-          {results.map((place, i) => (
+          {shown.map((place, i) => (
             <li
               key={i}
               id={`${listId}-${i}`}
@@ -170,7 +170,7 @@ export default function LocationSearch({ label, placeholder, onSelect }) {
         </ul>
       )}
 
-      {open && !searching && !error && query.trim().length >= 3 && results.length === 0 && (
+      {canSearch && !searching && !error && results.length === 0 && (
         <p className="mt-1 text-xs text-gray-500">No places found.</p>
       )}
     </div>

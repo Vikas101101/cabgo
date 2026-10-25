@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import LocationSearch from "@/components/LocationSearch";
+import ErrorBox from "@/components/ErrorBox";
 import { Skeleton } from "@/components/Skeleton";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -11,35 +12,42 @@ const MapView = dynamic(() => import("@/components/MapView"), {
   loading: () => <Skeleton className="h-[300px] w-full sm:h-[400px]" />,
 });
 
+// A short piece of text that identifies a pair of places. It lets us tell which
+// answer from the server belongs to the places chosen right now.
+const keyFor = (pickup, dropoff) =>
+  pickup && dropoff ? `${pickup.lat},${pickup.lng}>${dropoff.lat},${dropoff.lng}` : null;
+
 export default function BookRidePage() {
   const router = useRouter(); // lets us move to another page from code
 
   const [pickup, setPickup] = useState(null);
   const [dropoff, setDropoff] = useState(null);
 
-  const [estimate, setEstimate] = useState(null);
-  const [estimating, setEstimating] = useState(false);
-  const [estimateError, setEstimateError] = useState("");
+  // The server's answer, labelled with the places it was worked out for:
+  // { key, data } when it worked, or { key, error } when it didn't
+  const [result, setResult] = useState(null);
+  const [attempt, setAttempt] = useState(0); // bumped by "Try again"
 
-  // New: the chosen ride type, and the state of the Request button
   const [rideType, setRideType] = useState("auto");
   const [requesting, setRequesting] = useState(false);
-  const [requestError, setRequestError] = useState("");
+  const [requestFailure, setRequestFailure] = useState(null); // { key, message }
 
-  // Get the route and fares whenever pickup or drop-off changes
+  // Everything below is worked out from the state above, so nothing needs resetting
+  const key = keyFor(pickup, dropoff);
+  const current = result && result.key === key ? result : null; // only if it's for these places
+  const estimate = current?.data ?? null;
+  const estimateError = current?.error ?? "";
+  const estimating = Boolean(key) && !current;
+  const requestError = requestFailure && requestFailure.key === key ? requestFailure.message : "";
+
+  // Get the route and fares whenever the pair of places changes (or on "Try again")
   useEffect(() => {
-    setEstimate(null);
-    setEstimateError("");
-    setEstimating(false);
-    setRequestError("");
+    if (!key) return;
 
-    if (!pickup || !dropoff) return;
-
-    let cancelled = false;
+    let cancelled = false; // set to true if the places change before the answer arrives
 
     async function loadEstimate() {
       try {
-        setEstimating(true);
         const res = await fetch("/api/route-estimate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -50,11 +58,9 @@ export default function BookRidePage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-        if (!cancelled) setEstimate(data);
+        if (!cancelled) setResult({ key, data });
       } catch (err) {
-        if (!cancelled) setEstimateError(err.message);
-      } finally {
-        if (!cancelled) setEstimating(false);
+        if (!cancelled) setResult({ key, error: err.message });
       }
     }
 
@@ -62,12 +68,19 @@ export default function BookRidePage() {
     return () => {
       cancelled = true;
     };
-  }, [pickup, dropoff]);
+    // The places are described by `key`, so they don't need to be listed separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, attempt]);
+
+  function retry() {
+    setResult(null);
+    setAttempt((n) => n + 1);
+  }
 
   // Runs when the rider clicks "Request ride"
   async function handleRequest() {
     setRequesting(true);
-    setRequestError("");
+    setRequestFailure(null);
 
     try {
       const res = await fetch("/api/rides", {
@@ -86,12 +99,13 @@ export default function BookRidePage() {
       // Success: go to the dashboard, where the new ride is listed
       router.push("/dashboard");
     } catch (err) {
-      setRequestError(err.message);
+      setRequestFailure({ key, message: err.message });
       setRequesting(false);
     }
     // On success we leave the page, so we don't need to re-enable the button
   }
-    // On a phone the fares appear below the map. Scroll them into view when they arrive.
+
+  // On a phone the fares appear below the map. Scroll them into view when they arrive.
   const summaryRef = useRef(null);
   useEffect(() => {
     if (estimate && summaryRef.current) {
@@ -121,9 +135,9 @@ export default function BookRidePage() {
       <MapView pickup={pickup} dropoff={dropoff} path={estimate?.path} />
 
       {pickup && dropoff && (
-          <div ref={summaryRef} className="scroll-mb-24 rounded-lg bg-white p-4 shadow">
+        <div ref={summaryRef} className="scroll-mb-24 rounded-lg bg-white p-4 shadow">
           {estimating && <p className="text-gray-600">Calculating route...</p>}
-          {estimateError && <p className="text-red-600">{estimateError}</p>}
+          {estimateError && <ErrorBox message={estimateError} onRetry={retry} />}
 
           {estimate && (
             <div className="space-y-4">
@@ -161,7 +175,9 @@ export default function BookRidePage() {
               </div>
 
               {requestError && (
-                <p className="rounded bg-red-100 p-3 text-sm text-red-800">{requestError}</p>
+                <p role="alert" className="rounded bg-red-100 p-3 text-sm text-red-800">
+                  {requestError}
+                </p>
               )}
 
               <button

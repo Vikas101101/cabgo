@@ -173,7 +173,7 @@ export default function ProfilePage() {
             className="w-full rounded border border-gray-200 bg-gray-100 px-3 py-2 text-gray-500"
           />
           <p className="mt-1 text-xs text-gray-500">
-            Email is managed by your login and can't be changed here.
+            Email is managed by your login and can&apos;t be changed here.
           </p>
         </div>
 
