@@ -22,6 +22,15 @@ describe("next.config.mjs", () => {
     expect(headers["Strict-Transport-Security"]).toContain("max-age=");
   });
 
+  it("tries out a Content-Security-Policy in report-only mode", async () => {
+    const rules = await config.headers();
+    const everything = rules.find((r) => r.source === "/:path*");
+    const csp = everything.headers.find((h) => h.key === "Content-Security-Policy-Report-Only");
+
+    expect(csp.value).toContain("frame-ancestors 'none'");
+    expect(csp.value).toContain("object-src 'none'");
+  });
+
   it("stops API responses from being stored by shared caches", async () => {
     const rules = await config.headers();
     const api = rules.find((r) => r.source === "/api/:path*");

@@ -1,3 +1,5 @@
+import { buildCsp } from "./lib/csp.mjs";
+
 // Headers sent with every response. They tell the browser to be strict.
 const securityHeaders = [
   // Don't guess a file's type from its content (stops some content-sniffing tricks)
@@ -10,6 +12,12 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
   // Once someone has visited over HTTPS, always use HTTPS (ignored on http://localhost)
   { key: "Strict-Transport-Security", value: "max-age=63072000" },
+  // TEST MODE: the browser reports what this policy WOULD block, but blocks nothing.
+  // When the console is quiet, change the name to "Content-Security-Policy" to enforce it.
+  {
+    key: "Content-Security-Policy-Report-Only",
+    value: buildCsp({ dev: process.env.NODE_ENV !== "production" }),
+  },
 ];
 
 /** @type {import('next').NextConfig} */
