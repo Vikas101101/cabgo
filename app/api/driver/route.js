@@ -130,7 +130,7 @@ export async function PATCH(request) {
     }
 
     // Only these fields can change here
-    const changes = { is_online: body.is_online };
+    const changes = { is_online: body.is_online, last_seen_at: new Date().toISOString() };
     if (hasLocation) {
       changes.current_lat = body.lat;
       changes.current_lng = body.lng;

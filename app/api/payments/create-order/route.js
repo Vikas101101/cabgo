@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
-import { createRazorpayOrder, splitFare } from "@/lib/payments";
+import { createRazorpayOrder, splitFare, toPaise } from "@/lib/payments";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +55,26 @@ export async function POST(request) {
     if (paidError) throw paidError;
     if (paid.length > 0) {
       return Response.json({ error: "This ride is already paid" }, { status: 409 });
+    }
+
+        // If an order was started before but never paid, reuse it instead of creating another
+    const { data: earlier, error: earlierError } = await supabase
+      .from("payments")
+      .select("provider_order_id, amount")
+      .eq("ride_id", ride.id)
+      .eq("status", "pending")
+      .not("provider_order_id", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (earlierError) throw earlierError;
+
+    if (earlier.length > 0 && Number(earlier[0].amount) === Number(ride.fare)) {
+      return Response.json({
+        order_id: earlier[0].provider_order_id,
+        amount: toPaise(ride.fare),
+        currency: "INR",
+        key_id: process.env.RAZORPAY_KEY_ID,
+      });
     }
 
     // The amount comes from OUR database, never from the browser

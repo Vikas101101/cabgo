@@ -1,3 +1,4 @@
+import { requestCutoff } from "@/lib/rideRules";
 import { getCurrentUser } from "@/lib/getCurrentUser";
 import { fail, readJson } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +31,22 @@ export async function GET() {
 
     if (data.length === 0) {
       return Response.json({ role: user.role, ride: null });
+    }
+
+        // A request that no driver answered in time is cancelled, and the rider is told
+    if (
+      user.role === "rider" &&
+      data[0].status === "requested" &&
+      Date.parse(data[0].created_at) < Date.parse(requestCutoff())
+    ) {
+      const { error: expireError } = await supabase
+        .from("rides")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", data[0].id)
+        .eq("status", "requested");
+      if (expireError) throw expireError;
+
+      return Response.json({ role: user.role, ride: null, expired: true });
     }
 
     // Keep the ids on the server, and send back only what the page needs

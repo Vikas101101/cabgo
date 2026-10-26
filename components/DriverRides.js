@@ -99,6 +99,21 @@ export default function DriverRides({ isOnline }) {
             </button>
           )}
 
+          {ride.status === "accepted" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("Give this ride back? The rider will be matched with another driver.")) {
+                  act(ride.id, "release", "You gave the ride back.");
+                }
+              }}
+              disabled={workingId === ride.id}
+              className="w-full rounded border border-red-300 px-4 py-3 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              Give this ride back
+            </button>
+          )}
+
           {ride.status === "in_progress" && (
             <button
               onClick={() => act(ride.id, "complete", `Ride completed. Fare: ₹${ride.fare}.`)}

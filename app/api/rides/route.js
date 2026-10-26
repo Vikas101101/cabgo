@@ -4,8 +4,8 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { supabase } from "@/lib/supabase";
 import { getRoute, isValidPoint } from "@/lib/route";
 import { RIDE_TYPES, calculateFare } from "@/lib/fare";
-import { distanceKm, MATCH_RADIUS_KM } from "@/lib/geo";
-import { notifyUser } from "@/lib/realtime";
+import { requestCutoff } from "@/lib/rideRules";
+import { notifyNearbyDrivers } from "@/lib/matching";
 
 // GET /api/rides → the five newest rides, plus counts for the dashboard
 export async function GET() {
@@ -90,7 +90,17 @@ export async function POST(request) {
       return Response.json({ error: "Address is too long" }, { status: 400 });
     }
 
-    // 2. One active ride at a time
+    // 2. Cancel this rider's own requests that nobody answered in time,
+    //    so an expired request can't block a new booking
+    const { error: sweepError } = await supabase
+      .from("rides")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("rider_id", user.id)
+      .eq("status", "requested")
+      .lt("created_at", requestCutoff());
+    if (sweepError) throw sweepError;
+
+    // 3. One active ride at a time (the database enforces this too)
     const { data: active, error: activeError } = await supabase
       .from("rides")
       .select("id")
@@ -102,11 +112,11 @@ export async function POST(request) {
       return Response.json({ error: "You already have an active ride." }, { status: 409 });
     }
 
-    // 3. The SERVER works out distance, time and fare
+    // 4. The SERVER works out distance, time and fare
     const route = await getRoute(pickup, dropoff);
     const fare = calculateFare(ride_type, route.distanceKm, route.durationMin);
 
-    // 4. Save the ride
+    // 5. Save the ride
     const { data, error } = await supabase
       .from("rides")
       .insert({
@@ -124,30 +134,18 @@ export async function POST(request) {
       })
       .select()
       .single();
-    if (error) throw error;
 
-    // 5. Ping nearby online drivers. Best effort: it never blocks the booking.
-    try {
-      const { data: drivers } = await supabase
-        .from("drivers")
-        .select("user_id, current_lat, current_lng")
-        .eq("is_online", true)
-        .not("current_lat", "is", null)
-        .not("current_lng", "is", null)
-        .limit(200);
-
-      const nearby = (drivers ?? []).filter(
-        (d) =>
-          distanceKm(
-            { lat: d.current_lat, lng: d.current_lng },
-            { lat: pickup.lat, lng: pickup.lng }
-          ) <= MATCH_RADIUS_KM
-      );
-
-      await Promise.all(nearby.map((d) => notifyUser(d.user_id, "new-request")));
-    } catch (err) {
-      console.warn("Could not notify drivers:", err.message);
+    if (error) {
+      // 23505 = the database's own one-active-ride rule. A second booking sent at the
+      // same instant lands here, even though it passed the check above.
+      if (error.code === "23505") {
+        return Response.json({ error: "You already have an active ride." }, { status: 409 });
+      }
+      throw error;
     }
+
+    // 6. Ping nearby drivers. Best effort: it never blocks the booking.
+    await notifyNearbyDrivers({ lat: pickup.lat, lng: pickup.lng });
 
     return Response.json({ ride: data }, { status: 201 });
   } catch (err) {

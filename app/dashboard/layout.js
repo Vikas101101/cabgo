@@ -1,3 +1,4 @@
+import SessionGuard from "@/components/SessionGuard";
 import Sidebar from "@/components/Sidebar";
 import Notifications from "@/components/Notifications";
 
@@ -13,7 +14,7 @@ export default function DashboardLayout({ children }) {
       >
         Skip to content
       </a>
-
+      <SessionGuard />
       <Notifications />
       <Sidebar />
 

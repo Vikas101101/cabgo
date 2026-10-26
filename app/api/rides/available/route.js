@@ -1,7 +1,8 @@
 import { getCurrentUser } from "@/lib/getCurrentUser";
-import { fail, readJson } from "@/lib/http";
+import { fail } from "@/lib/http";
 import { supabase } from "@/lib/supabase";
 import { distanceKm, MATCH_RADIUS_KM } from "@/lib/geo";
+import { requestCutoff } from "@/lib/rideRules";
 
 // GET /api/rides/available → open ride requests near the logged-in driver
 export async function GET() {
@@ -14,26 +15,30 @@ export async function GET() {
       return Response.json({ error: "Only drivers can do this" }, { status: 403 });
     }
 
-    // Where is the driver, and are they online?
+    // Record that this driver is here right now. It only counts if they're online,
+    // and it gives us their location in the same step.
     const { data: driver, error: driverError } = await supabase
       .from("drivers")
-      .select("is_online, current_lat, current_lng")
+      .update({ last_seen_at: new Date().toISOString() })
       .eq("user_id", user.id)
+      .eq("is_online", true)
+      .select("current_lat, current_lng")
       .maybeSingle();
     if (driverError) throw driverError;
 
-    // Offline or no location: nothing to show
-    if (!driver?.is_online || driver.current_lat === null || driver.current_lng === null) {
+    // Offline, or no location: nothing to show
+    if (!driver || driver.current_lat === null || driver.current_lng === null) {
       return Response.json({ rides: [] });
     }
 
-    // All open requests. We choose the columns, so the rider's identity isn't sent.
+    // Open requests that haven't expired. We choose the columns, so the rider's identity isn't sent.
     const { data, error } = await supabase
       .from("rides")
       .select(
         "id, pickup_address, pickup_lat, pickup_lng, dropoff_address, distance_km, duration_min, fare, ride_type, created_at"
       )
       .eq("status", "requested")
+      .gte("created_at", requestCutoff())
       .order("created_at", { ascending: false })
       .limit(100);
     if (error) throw error;

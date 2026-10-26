@@ -123,6 +123,10 @@ describe("GET /api/rides", () => {
 });
 
 describe("POST /api/rides (booking a ride)", () => {
+  // The route first cancels this rider's expired requests, so every booking that gets
+  // that far uses one extra answer on "rides" before the active-ride check.
+  const queueSweep = () => fake.queue("rides", { data: null, error: null });
+
   it("returns 401 when nobody is logged in", async () => {
     getCurrentUser.mockResolvedValue(null);
     const res = await POST(jsonRequest(BODY));
@@ -151,8 +155,23 @@ describe("POST /api/rides (booking a ride)", () => {
     expect(res.status).toBe(400);
   });
 
+  it("cancels the rider's own expired requests before checking for an active ride", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    queueSweep();
+    fake.queue("rides", { data: [{ id: "old-ride" }], error: null });
+
+    await POST(jsonRequest(BODY));
+
+    const ops = fake.ops("rides");
+    expect(ops.find((o) => o.method === "update").args[0]).toMatchObject({ status: "cancelled" });
+    expect(ops).toContainEqual({ method: "eq", args: ["rider_id", RIDER.id] });
+    expect(ops).toContainEqual({ method: "eq", args: ["status", "requested"] });
+    expect(ops.some((o) => o.method === "lt" && o.args[0] === "created_at")).toBe(true);
+  });
+
   it("returns 409 when the rider already has an active ride", async () => {
     getCurrentUser.mockResolvedValue(RIDER);
+    queueSweep();
     fake.queue("rides", { data: [{ id: "old-ride" }], error: null });
 
     const res = await POST(jsonRequest(BODY));
@@ -161,9 +180,24 @@ describe("POST /api/rides (booking a ride)", () => {
     expect(getRoute).not.toHaveBeenCalled(); // it stopped before doing any work
   });
 
+  it("returns 409 when a second booking sent at the same instant hits the database rule", async () => {
+    getCurrentUser.mockResolvedValue(RIDER);
+    getRoute.mockResolvedValue({ distanceKm: 10, durationMin: 20, path: [] });
+    queueSweep();
+    fake.queue("rides", { data: [], error: null }); // the check passed...
+    fake.queue("rides", { data: null, error: { code: "23505", message: "duplicate key" } }); // ...but the insert lost
+
+    const res = await POST(jsonRequest(BODY));
+
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/already have an active ride/);
+    expect(fake.calls.some((c) => c.table === "drivers")).toBe(false); // nobody was pinged
+  });
+
   it("saves the ride with a fare worked out by the server, ignoring the browser's price", async () => {
     getCurrentUser.mockResolvedValue(RIDER);
     getRoute.mockResolvedValue({ distanceKm: 10, durationMin: 20, path: [] });
+    queueSweep();
     fake.queue("rides", { data: [], error: null }); // no active ride
     fake.queue("rides", { data: { id: "ride-1", status: "requested" }, error: null }); // the insert
     fake.queue("drivers", { data: [], error: null }); // no drivers to ping
@@ -180,9 +214,10 @@ describe("POST /api/rides (booking a ride)", () => {
     expect(insertedRow().fare).not.toBe(1);
   });
 
-  it("pings only the online drivers who are within the pickup radius", async () => {
+  it("pings only online drivers who were seen recently and are within the pickup radius", async () => {
     getCurrentUser.mockResolvedValue(RIDER);
     getRoute.mockResolvedValue({ distanceKm: 10, durationMin: 20, path: [] });
+    queueSweep();
     fake.queue("rides", { data: [], error: null });
     fake.queue("rides", { data: { id: "ride-1" }, error: null });
     fake.queue("drivers", {
@@ -198,6 +233,8 @@ describe("POST /api/rides (booking a ride)", () => {
     expect(res.status).toBe(201);
     expect(notifyUser).toHaveBeenCalledTimes(1);
     expect(notifyUser).toHaveBeenCalledWith("d-near", "new-request");
+    expect(fake.ops("drivers")).toContainEqual({ method: "eq", args: ["is_online", true] });
+    expect(fake.ops("drivers").some((o) => o.method === "gte" && o.args[0] === "last_seen_at")).toBe(true);
   });
 
   it("still books the ride even if the realtime ping fails", async () => {
@@ -205,6 +242,7 @@ describe("POST /api/rides (booking a ride)", () => {
     getCurrentUser.mockResolvedValue(RIDER);
     getRoute.mockResolvedValue({ distanceKm: 10, durationMin: 20, path: [] });
     notifyUser.mockRejectedValue(new Error("realtime is down"));
+    queueSweep();
     fake.queue("rides", { data: [], error: null });
     fake.queue("rides", { data: { id: "ride-1" }, error: null });
     fake.queue("drivers", {

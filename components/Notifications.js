@@ -13,6 +13,7 @@ const MESSAGES = {
   cancelled: "The ride was cancelled",
   paid: "Payment received for your ride",
   reviewed: "You received a new rating",
+  released: "Your driver can't make it. We're finding you another driver.",
   test: "Realtime is working!",
 };
 

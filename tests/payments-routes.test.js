@@ -84,6 +84,7 @@ describe("POST /api/payments/create-order", () => {
     createRazorpayOrder.mockResolvedValue({ id: ORDER, amount: 26900, currency: "INR" });
     fake.queue("rides", { data: COMPLETED_RIDE, error: null });
     fake.queue("payments", { data: [], error: null }); // not paid yet
+    fake.queue("payments", { data: [], error: null }); // no earlier unpaid order to reuse
     fake.queue("payments", { data: null, error: null }); // the insert
 
     const res = await call({ ride_id: RIDE_ID, amount: 1 }); // the browser tries a 1 rupee price

@@ -10,6 +10,7 @@ export default function ActiveRideCard() {
   const [data, setData] = useState(null); // { role, ride, driver, rider }
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState("");
+  const [expired, setExpired] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -17,6 +18,8 @@ export default function ActiveRideCard() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setData(json);
+      if (json.expired) setExpired(true);
+      else if (json.ride) setExpired(false);
     } catch (err) {
       setError(err.message);
     }
@@ -47,7 +50,24 @@ export default function ActiveRideCard() {
   }
 
   // Nothing to show if there is no active ride
-  if (!data?.ride) return null;
+  if (!data?.ride) {
+    if (!expired) return null;
+    return (
+      <div
+        role="status"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-yellow-100 p-4 text-sm text-yellow-900"
+      >
+        <p>No driver accepted your request in time, so it was cancelled. You can book again.</p>
+        <button
+          type="button"
+          onClick={() => setExpired(false)}
+          className="rounded border border-yellow-300 bg-white px-3 py-2 font-medium"
+        >
+          Dismiss
+        </button>
+      </div>
+    );
+  }
 
   const { ride, driver } = data;
   const isRider = data.role === "rider";
