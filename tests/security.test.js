@@ -37,6 +37,8 @@ describe("API routes", () => {
       const src = read(file);
       if (rel(file) === "app/api/payments/webhook/route.js") {
         if (!src.includes("verifyWebhookSignature(")) offenders.push(rel(file));
+      } else if (rel(file) === "app/api/health/route.js") {
+        if (!src.includes("CRON_SECRET")) offenders.push(rel(file));
       } else if (!/getCurrentUser\(\)|await auth\(\)/.test(src)) {
         offenders.push(rel(file));
       }
