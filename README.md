@@ -7,7 +7,11 @@ see live updates.
 > This is a portfolio and learning project. Payments run in **test mode** (no real money
 > moves), and it isn't meant to be used as a real service.
 
-**Live demo:** ADD_YOUR_LINK_HERE · **Demo video:** ADD_YOUR_LINK_HERE
+**Live demo:** https://cabgo-rho.vercel.app/ · **Demo video:** ---------
+
+**Try it:**
+
+ sign up with any email or Google. Payments run in test mode, so use the test card `4386 2894 0766 0153` with any future expiry date, any 3-digit CVV, and any 4 to 10 digit code on the bank page. To see both sides of a ride, open the site in two browsers, and in one of them choose **Drive with us** to register as a driver. The site uses development login keys, so you will see a "Development mode" notice, and receipt emails are only delivered to the project owner.
 
 ## Features
 
@@ -91,9 +95,10 @@ data from the protected API.
 
 **You need:** Node.js 20 or newer, and free accounts at Clerk, Supabase, Razorpay (test mode), and Resend.
 
+
 ```bash
-git clone https://github.com/YOUR-USERNAME/YOUR-REPO.git
-cd YOUR-REPO
+git clone https://github.com/Vikas101101/cabgo.git
+cd cabgo
 npm install
 cp .env.example .env.local     # on Windows PowerShell: Copy-Item .env.example .env.local
 ```
